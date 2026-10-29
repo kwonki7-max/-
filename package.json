@@ -1,0 +1,55 @@
+{
+  "name": "gijunsil-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "기준실 — 견적조건과 부자재 산출을 위한 데스크톱 업무 공간",
+  "author": "Gijunsil",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "test:desktop": "node --test desktop/tests/*.test.cjs",
+    "build:windows": "electron-builder --win nsis --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.1.0",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.gijunsil.desktop",
+    "productName": "기준실",
+    "executableName": "Gijunsil",
+    "directories": {
+      "output": "dist",
+      "buildResources": "desktop/assets"
+    },
+    "files": [
+      "desktop/**/*",
+      "!desktop/tests/**/*",
+      "!desktop/assets/**/*.ico",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "desktop/assets/icon.ico",
+      "signExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "기준실",
+      "deleteAppDataOnUninstall": false,
+      "installerLanguages": [
+        "ko_KR",
+        "en_US"
+      ],
+      "language": "1042",
+      "artifactName": "Gijunsil-Setup-${version}-${arch}.${ext}",
+      "script": "desktop/installer.nsi",
+      "packElevateHelper": false
+    },
+    "afterPack": "./scripts/after-pack.cjs"
+  }
+}

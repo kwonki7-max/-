@@ -1,0 +1,66 @@
+name: Windows installer verification
+on:
+  push:
+    branches: [delivery/windows-v0.1.0]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  installer:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: python -m pip install -r requirements-dev.txt playwright==1.58.0
+      - run: python -m pytest -q
+      - run: npm run test:desktop
+      - name: Use an unconfigured test build without production endpoints
+        shell: pwsh
+        run: |
+          '{"serverUrl":"","companyName":"우리 회사"}' | Set-Content -Encoding utf8 desktop/company-config.json
+      - run: npm run build:windows
+      - name: Install the EXE
+        shell: pwsh
+        run: |
+          $installer = Resolve-Path dist/Gijunsil-Setup-0.1.0-x64.exe
+          $result = Start-Process -FilePath $installer -ArgumentList '/S' -PassThru -Wait
+          if ($result.ExitCode -ne 0) { throw "Installer exited with $($result.ExitCode)" }
+      - run: python tests/windows_installed_smoke.py
+      - name: Uninstall without deleting unrelated user files
+        shell: pwsh
+        run: |
+          $installDir = Join-Path $env:LOCALAPPDATA 'Programs/Gijunsil'
+          'preserve this user file' | Set-Content (Join-Path $installDir 'user-note.txt')
+          $result = Start-Process -FilePath (Join-Path $installDir 'Uninstall.exe') -ArgumentList '/S' -PassThru -Wait
+          if ($result.ExitCode -ne 0) { throw "Uninstaller exited with $($result.ExitCode)" }
+          for ($i = 0; $i -lt 40 -and (Test-Path (Join-Path $installDir 'Gijunsil.exe')); $i++) { Start-Sleep -Milliseconds 250 }
+          if (Test-Path (Join-Path $installDir 'Gijunsil.exe')) { throw 'Application was not removed' }
+          if (-not (Test-Path (Join-Path $installDir 'user-note.txt'))) { throw 'Uninstaller deleted user data' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Gijunsil-Windows-unconfigured
+          path: |
+            dist/Gijunsil-Setup-0.1.0-x64.exe
+            dist/windows-installed.png
+      - name: Publish verified preview installer
+        if: github.ref == 'refs/heads/delivery/windows-v0.1.0'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          $asset = 'dist/Gijunsil-Setup-0.1.0-x64.exe'
+          $hash = (Get-FileHash -Algorithm SHA256 $asset).Hash.ToLower()
+          "$hash  Gijunsil-Setup-0.1.0-x64.exe" | Set-Content -Encoding utf8 "$asset.sha256"
+          gh release upload v0.1.0-preview $asset "$asset.sha256" docs/desktop-login.png docs/desktop-workspace.png dist/windows-installed.png --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Release asset upload failed' }
+          gh release edit v0.1.0-preview --draft=false --prerelease --target $env:GITHUB_SHA --notes-file docs/RELEASE-v0.1.0.md
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }

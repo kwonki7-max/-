@@ -1,0 +1,30 @@
+services:
+  app:
+    build:
+      context: ..
+    restart: unless-stopped
+    environment:
+      COOKIE_SECURE: "1"
+      ESTIMATE_DATABASE: /data/estimate.sqlite3
+    volumes:
+      - company_data:/data
+  proxy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    environment:
+      COMPANY_DOMAIN: ${COMPANY_DOMAIN:?Set the company domain in deploy/.env}
+      ACME_EMAIL: ${ACME_EMAIL:?Set the TLS certificate contact email in deploy/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+volumes:
+  company_data:
+  caddy_data:
+  caddy_config:

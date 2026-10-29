@@ -1,0 +1,9 @@
+__pycache__/
+.pytest_cache/
+.venv/
+instance/
+*.sqlite3*
+.env
+node_modules/
+dist/
+.desktop-build/
