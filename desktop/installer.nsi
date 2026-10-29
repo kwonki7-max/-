@@ -41,7 +41,11 @@ FunctionEnd
 Section "기준실 설치"
   SetShellVarContext current
   SetOutPath "$INSTDIR"
-  File /r "${PROJECT_DIR}/dist/win-unpacked/*"
+  !ifdef NSIS_WIN32_MAKENSIS
+    File /r "${PROJECT_DIR}\dist\win-unpacked\*"
+  !else
+    File /r "${PROJECT_DIR}/dist/win-unpacked/*"
+  !endif
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   CreateDirectory "$SMPROGRAMS\기준실"
   CreateShortcut "$SMPROGRAMS\기준실\기준실.lnk" "$INSTDIR\Gijunsil.exe"
@@ -68,7 +72,11 @@ Section "Uninstall"
   Delete "$DESKTOP\기준실.lnk"
   Delete "$SMPROGRAMS\기준실\기준실.lnk"
   RMDir "$SMPROGRAMS\기준실"
-  !include "${PROJECT_DIR}/.desktop-build/uninstall-files.nsh"
+  !ifdef NSIS_WIN32_MAKENSIS
+    !include "${PROJECT_DIR}\.desktop-build\uninstall-files.nsh"
+  !else
+    !include "${PROJECT_DIR}/.desktop-build/uninstall-files.nsh"
+  !endif
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
   DeleteRegKey HKCU "Software\Gijunsil"

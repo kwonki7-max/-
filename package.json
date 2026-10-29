@@ -50,6 +50,7 @@
       "script": "desktop/installer.nsi",
       "packElevateHelper": false
     },
-    "afterPack": "./scripts/after-pack.cjs"
+    "afterPack": "./scripts/after-pack.cjs",
+    "compression": "store"
   }
 }
